@@ -1,0 +1,37 @@
+diff --git a/debian/postinst b/debian/postinst
+index bb3bc2e..dc0f139 100644
+--- a/debian/postinst
++++ b/debian/postinst
+@@ -3,7 +3,9 @@
+ if [ "$1" = "configure" ]; then
+ 
+ # Touch all jlc files
+-  find /usr/share/sawfish/*/lisp -name *.jlc | xargs touch
++    if [ "0" != "$(find /usr/share/sawfish/*/lisp -name '*.jlc'|wc -l)" ] ; then
++	find /usr/share/sawfish/*/lisp -name '*.jlc' | xargs touch
++    fi
+ 
+ # Because dh_installwm don't install a slave manpage
+   update-alternatives --install /usr/bin/x-window-manager \
+diff --git a/debian/rules b/debian/rules
+index 26ecbed..31e330d 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -17,13 +17,12 @@ export LC_ALL LINGUAS LANG
+ 
+ DEB_CONFIGURE_USER_FLAGS = --with-readline
+ 
+-lisp_source_extras = debian/tmp/usr/share/sawfish/*/lisp -name "*.jl" \
+-	\! -name "*autoload*" \! -name "*custom-defaults*"
++lisp_source_extras = debian/tmp/usr/share/sawfish/lisp -name "*.jl" 
+ 
+-data_extras = debian/tmp/usr/share/sawfish/*/lisp -name "*.jlc" \! -name "*main*"
++data_extras = debian/tmp/usr/share/sawfish/lisp -name "*.jlc" \! -name "*main*"
+ 
+-data_extradirs = debian/tmp/usr/share/sawfish/$(version)/sounds \
+-	debian/tmp/usr/share/sawfish/$(version)/themes \
++data_extradirs = debian/tmp/usr/share/sawfish/sounds \
++	debian/tmp/usr/share/sawfish/themes \
+ 	debian/tmp/usr/share/xsessions \
+ 	debian/tmp/usr/include
+ 
