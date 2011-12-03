@@ -48,7 +48,7 @@ def dependencies():
             'readline-common',
             'libffi-dev',
             'libgdbm-dev',
-            'libgmp-dev',
+            'libgmp3-dev',
             'libgtk2.0-dev',
             'libpango1.0-0',
             'libgnutls-dev',
@@ -77,9 +77,8 @@ def version_exist(project,version):
         
 def latest(project):
     'Find the latest version for a project'
-    pattern = '^\d+\.\d+\.\d+$'
-    if project == 'sawfish':
-        pattern = '^sawfish-\d+\.\d+\.\d+$'
+    pattern = '^%s-\d+\.\d+\.\d+$' % project
+
     highest = None
     with lcd(project):
         for tag in local('git tag',True).split('\n'):
@@ -89,8 +88,8 @@ def latest(project):
             highest = tag
             continue
         pass
-    if highest and project == 'sawfish':
-        highest = highest[len('sawfish-'):]
+    highest = highest[len('%s-'%project):]
+
     print ('The latest version of "%s" is "%s"' % (project,highest))
 
     return highest
@@ -104,7 +103,7 @@ def diff(project):
     return
 
 def checkout(project,version):
-    'usage: checkout project version'
+    'usage: checkout project based on version tag'
     tag = version_exist(project,version)
 
     with lcd(project):
@@ -116,6 +115,20 @@ def checkout(project,version):
             local('git checkout %s' % tag)
             return
         local('git checkout -b %s %s' % (tag,tag))
+        return
+
+def checkout_branch(project,branch):
+    'usage: checkout project based on branch'
+
+    with lcd(project):
+        branches = local('git branch -a',True)
+        if branch in branches.split():
+            if '* %s'%branch in branches.split('\n'):
+                print('Branch "%s" already exists and is checked out' % branch)
+                return
+            local('git checkout %s' % branch)
+            return
+        local('git checkout -b %s remotes/origin/%s' % (branch,branch))
         return
 
 def build_stepwise(project):
@@ -204,6 +217,34 @@ def patch(project):
     with lcd(project):
         local('patch -N -p1 < ../%s.patch || true' % project)
         local('git commit -m "Bug fix" -a')
+
+def build_master():
+    '''
+    Build and install latest packages
+    '''
+    for project in all_projects:
+        clone(project)
+
+    rebase()
+
+    pv = [(p,"master") for p in all_projects]
+
+    for project,version in pv:
+        checkout_branch(project,version)
+
+    for project in all_projects:
+        patch(project)
+
+    for project in all_projects:
+        clean(project)
+
+    for project,version in pv:
+        build(project)
+        install(project,version)
+
+    for p,v in pv:
+        print ('Built "%s" version %s' % (p,v))
+    
 
 def build_latest():
     '''
